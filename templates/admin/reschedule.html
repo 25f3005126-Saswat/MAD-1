@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title mb-3">Reschedule Booking</h3>
+                <p class="text-muted">Student: <strong>{{ booking.student.username }}</strong> | Exam: <strong>{{ booking.exam.name }}</strong></p>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Select New Slot</label>
+                        <select name="new_slot_id" class="form-select" required>
+                            {% for slot in available_slots %}
+                                <option value="{{ slot.id }}">{{ slot.date }} | {{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }} (Examiner: {{ slot.examiner.username }}, Available: {{ slot.capacity - slot.booked_count }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">Confirm Reschedule</button>
+                </form>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary w-100 mt-2">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

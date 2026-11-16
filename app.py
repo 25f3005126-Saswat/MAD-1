@@ -60,6 +60,19 @@ def student_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.errorhandler(403)
+def forbidden_error(error):
+    return render_template('403.html'), 403
+
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return render_template('500.html'), 500
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -115,7 +128,7 @@ def register():
 @login_required
 def dashboard():
     if current_user.role == 'admin':
-        return redirect(url_for('manage_courses'))
+        return redirect(url_for('admin_dashboard'))
     elif current_user.role == 'examiner':
         if not current_user.is_approved:
             return render_template('dashboard.html')
@@ -129,6 +142,80 @@ def dashboard():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/admin/dashboard')
+@login_required
+@admin_required
+def admin_dashboard():
+    counts = {
+        'courses': Course.query.count(),
+        'exams': Exam.query.count(),
+        'examiners': User.query.filter_by(role='examiner').count(),
+        'students': User.query.filter_by(role='student').count(),
+        'slots': Slot.query.count(),
+        'bookings': Booking.query.count()
+    }
+    
+    search_query = request.args.get('q', '')
+    results = {'exams': [], 'students': [], 'examiners': [], 'bookings': []}
+    
+    if search_query:
+        results['exams'] = Exam.query.filter(or_(Exam.name.ilike(f'%{search_query}%'), Exam.id == (int(search_query) if search_query.isdigit() else 0))).all()
+        results['students'] = User.query.filter(User.role == 'student', or_(User.username.ilike(f'%{search_query}%'), User.email.ilike(f'%{search_query}%'), User.id == (int(search_query) if search_query.isdigit() else 0))).all()
+        results['examiners'] = User.query.filter(User.role == 'examiner', or_(User.username.ilike(f'%{search_query}%'), User.email.ilike(f'%{search_query}%'), User.id == (int(search_query) if search_query.isdigit() else 0))).all()
+        results['bookings'] = Booking.query.filter(or_(Booking.id == (int(search_query) if search_query.isdigit() else 0))).all()
+
+    all_bookings = Booking.query.all()
+    all_slots = Slot.query.all()
+    
+    return render_template('admin/dashboard.html', counts=counts, search_query=search_query, results=results, all_bookings=all_bookings, all_slots=all_slots)
+
+@app.route('/admin/booking/<int:booking_id>/reschedule', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_reschedule(booking_id):
+    booking = db.get_or_404(Booking, booking_id)
+    available_slots = Slot.query.filter_by(exam_id=booking.exam_id, status='Available').all()
+    
+    if request.method == 'POST':
+        new_slot_id = int(request.form.get('new_slot_id'))
+        new_slot = db.get_or_404(Slot, new_slot_id)
+        
+        if new_slot.status != 'Available' or new_slot.booked_count >= new_slot.capacity:
+            flash('Selected slot is full.', 'error')
+            return redirect(url_for('admin_reschedule', booking_id=booking.id))
+            
+        old_slot = booking.slot
+        old_slot.booked_count -= 1
+        if old_slot.status == 'Full':
+            old_slot.status = 'Available'
+            
+        booking.slot_id = new_slot.id
+        new_slot.booked_count += 1
+        if new_slot.booked_count >= new_slot.capacity:
+            new_slot.status = 'Full'
+            
+        db.session.commit()
+        flash('Booking rescheduled successfully.', 'success')
+        return redirect(url_for('admin_dashboard'))
+        
+    return render_template('admin/reschedule.html', booking=booking, available_slots=available_slots)
+
+@app.route('/admin/slot/<int:slot_id>/change_examiner', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_change_examiner(slot_id):
+    slot = db.get_or_404(Slot, slot_id)
+    approved_examiners = User.query.filter_by(role='examiner', is_approved=True).all()
+    
+    if request.method == 'POST':
+        new_examiner_id = int(request.form.get('new_examiner_id'))
+        slot.examiner_id = new_examiner_id
+        db.session.commit()
+        flash('Examiner reassigned successfully.', 'success')
+        return redirect(url_for('admin_dashboard'))
+        
+    return render_template('admin/change_examiner.html', slot=slot, approved_examiners=approved_examiners)
 
 @app.route('/admin/courses', methods=['GET', 'POST'])
 @login_required
@@ -370,6 +457,46 @@ def view_slot_students(id):
     if slot.examiner_id != current_user.id:
         abort(403)
     return render_template('examiner/view_slot_students.html', slot=slot)
+
+@app.route('/examiner/booking/<int:booking_id>/evaluate', methods=['GET', 'POST'])
+@login_required
+@examiner_required
+def evaluate_student(booking_id):
+    booking = db.get_or_404(Booking, booking_id)
+    if booking.slot.examiner_id != current_user.id:
+        abort(403)
+    if request.method == 'POST':
+        total_marks = 0.0
+        rubric_marks_list = []
+        for rubric in booking.exam.rubrics:
+            awarded = float(request.form.get(f'rubric_{rubric.id}', 0))
+            total_marks += awarded
+            rubric_marks_list.append((rubric.id, awarded))
+        
+        remarks = request.form.get('remarks')
+        
+        evaluation = Evaluation(
+            booking_id=booking.id,
+            examiner_id=current_user.id,
+            remarks=remarks,
+            total_marks=total_marks
+        )
+        db.session.add(evaluation)
+        db.session.flush()
+        
+        for r_id, marks in rubric_marks_list:
+            rm = RubricMark(
+                evaluation_id=evaluation.id,
+                rubric_id=r_id,
+                marks_awarded=marks
+            )
+            db.session.add(rm)
+        
+        booking.status = 'Completed'
+        db.session.commit()
+        flash('Evaluation submitted successfully.', 'success')
+        return redirect(url_for('view_slot_students', id=booking.slot_id))
+    return render_template('examiner/evaluate_student.html', booking=booking)
 
 @app.route('/student/dashboard')
 @login_required

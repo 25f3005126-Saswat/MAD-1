@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-2 mb-3">
+        <div class="card text-white bg-primary shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="card-title">Courses</h6>
+                <h3>{{ counts.courses }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card text-white bg-success shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="card-title">Exams</h6>
+                <h3>{{ counts.exams }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card text-white bg-info shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="card-title">Examiners</h6>
+                <h3>{{ counts.examiners }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card text-white bg-warning shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="card-title">Students</h6>
+                <h3>{{ counts.students }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card text-white bg-secondary shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="card-title">Slots</h6>
+                <h3>{{ counts.slots }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 mb-3">
+        <div class="card text-white bg-dark shadow-sm">
+            <div class="card-body text-center">
+                <h6 class="card-title">Bookings</h6>
+                <h3>{{ counts.bookings }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Global Search</h4>
+        <form method="GET" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search students, examiners, exams, or bookings by name/ID...">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if search_query %}
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Search Results for "{{ search_query }}"</h4>
+        
+        <h5 class="mt-3">Exams</h5>
+        <table class="table table-bordered table-sm align-middle">
+            <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for exam in results.exams %}
+                <tr><td>{{ exam.id }}</td><td>{{ exam.name }}</td><td>{{ exam.exam_type }}</td><td>{{ exam.status }}</td></tr>
+                {% else %}
+                <tr><td colspan="4" class="text-muted">No matching exams.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h5 class="mt-3">Students</h5>
+        <table class="table table-bordered table-sm align-middle">
+            <thead><tr><th>ID</th><th>Username</th><th>Email</th></tr></thead>
+            <tbody>
+                {% for student in results.students %}
+                <tr><td>{{ student.id }}</td><td>{{ student.username }}</td><td>{{ student.email }}</td></tr>
+                {% else %}
+                <tr><td colspan="3" class="text-muted">No matching students.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h5 class="mt-3">Examiners</h5>
+        <table class="table table-bordered table-sm align-middle">
+            <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Approved</th></tr></thead>
+            <tbody>
+                {% for examiner in results.examiners %}
+                <tr><td>{{ examiner.id }}</td><td>{{ examiner.username }}</td><td>{{ examiner.email }}</td><td>{{ examiner.is_approved }}</td></tr>
+                {% else %}
+                <tr><td colspan="4" class="text-muted">No matching examiners.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h5 class="mt-3">Bookings</h5>
+        <table class="table table-bordered table-sm align-middle">
+            <thead><tr><th>ID</th><th>Student</th><th>Exam</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for booking in results.bookings %}
+                <tr><td>{{ booking.id }}</td><td>{{ booking.student.username }}</td><td>{{ booking.exam.name }}</td><td>{{ booking.status }}</td></tr>
+                {% else %}
+                <tr><td colspan="4" class="text-muted">No matching bookings.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h4 class="card-title mb-3">All Bookings & Rescheduling</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Student</th>
+                                <th>Exam</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in all_bookings %}
+                            <tr>
+                                <td>{{ booking.id }}</td>
+                                <td>{{ booking.student.username }}</td>
+                                <td>{{ booking.exam.name }}</td>
+                                <td><span class="badge bg-{{ 'success' if booking.status == 'Booked' else 'secondary' }}">{{ booking.status }}</span></td>
+                                <td>
+                                    {% if booking.status == 'Booked' %}
+                                        <a href="{{ url_for('admin_reschedule', booking_id=booking.id) }}" class="btn btn-sm btn-warning">Reschedule</a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted">No bookings found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h4 class="card-title mb-3">All Slots & Examiner Reassignment</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Exam</th>
+                                <th>Examiner</th>
+                                <th>Date / Time</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for slot in all_slots %}
+                            <tr>
+                                <td>{{ slot.id }}</td>
+                                <td>{{ slot.exam.name }}</td>
+                                <td>{{ slot.examiner.username }}</td>
+                                <td>{{ slot.date }} {{ slot.start_time.strftime('%H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin_change_examiner', slot_id=slot.id) }}" class="btn btn-sm btn-info text-white">Change Examiner</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted">No slots found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

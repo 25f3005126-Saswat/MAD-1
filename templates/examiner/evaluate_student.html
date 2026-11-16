@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title mb-3">Evaluate Student</h3>
+                <p class="text-muted">Student: <strong>{{ booking.student.username }}</strong> | Exam: <strong>{{
+                        booking.exam.name }}</strong></p>
+                <form method="POST">
+                    {% for rubric in booking.exam.rubrics %}
+                    <div class="mb-3 border p-3 rounded">
+                        <label class="form-label fw-bold">{{ rubric.criterion_name }} (Max Marks: {{ rubric.max_marks
+                            }}, Weightage: {{ rubric.weightage }}%)</label>
+                        {% if rubric.description %}
+                        <p class="text-muted small">{{ rubric.description }}</p>
+                        {% endif %}
+                        <input type="number" step="0.5" name="rubric_{{ rubric.id }}" class="form-control" min="0"
+                            max="{{ rubric.max_marks }}" required>
+                    </div>
+                    {% endfor %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Remarks</label>
+                        <textarea name="remarks" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Submit Evaluation</button>
+                </form>
+                <a href="{{ url_for('view_slot_students', id=booking.slot_id) }}"
+                    class="btn btn-outline-secondary w-100 mt-2">Back to Slot Students</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
