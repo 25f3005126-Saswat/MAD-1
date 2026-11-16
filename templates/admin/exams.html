@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h4 class="card-title mb-3">Create Exam</h4>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Course</label>
+                        <select name="course_id" class="form-select" required>
+                            {% for course in courses %}
+                                <option value="{{ course.id }}">{{ course.code }} - {{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Exam Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Exam Type</label>
+                        <select name="exam_type" class="form-select" required>
+                            <option value="Viva">Viva</option>
+                            <option value="Practical">Practical</option>
+                            <option value="Project Demo">Project Demo</option>
+                            <option value="Assessment">Assessment</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Duration (Minutes)</label>
+                        <input type="number" name="duration_minutes" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Marks</label>
+                        <input type="number" name="max_marks" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Slot Creation Start</label>
+                        <input type="datetime-local" name="slot_start" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Slot Creation End</label>
+                        <input type="datetime-local" name="slot_end" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Booking Start</label>
+                        <input type="datetime-local" name="booking_start" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Booking End</label>
+                        <input type="datetime-local" name="booking_end" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="Draft">Draft</option>
+                            <option value="Slot Creation">Slot Creation</option>
+                            <option value="Booking Open">Booking Open</option>
+                            <option value="Closed">Closed</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Create Exam</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="card-title mb-3">All Exams</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>Exam</th>
+                                <th>Course</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exam in exams %}
+                            <tr>
+                                <td>{{ exam.name }}</td>
+                                <td>{{ exam.course.code }}</td>
+                                <td>{{ exam.exam_type }}</td>
+                                <td><span class="badge bg-info text-dark">{{ exam.status }}</span></td>
+                                <td>
+                                    <a href="{{ url_for('edit_exam', id=exam.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                    <a href="{{ url_for('manage_rubrics', id=exam.id) }}" class="btn btn-sm btn-secondary">Rubrics</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No exams found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

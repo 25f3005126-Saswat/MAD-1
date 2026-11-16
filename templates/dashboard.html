@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <div class="container-fluid py-3">
+        <h1 class="display-5 fw-bold">Welcome, {{ current_user.username }}!</h1>
+        <p class="col-md-8 fs-4 text-muted">Role: <strong>{{ current_user.role | upper }}</strong></p>
+        <hr>
+        {% if current_user.role == 'admin' %}
+            <p class="text-success">You are logged in as Admin. You have full system management privileges.</p>
+        {% elif current_user.role == 'examiner' %}
+            {% if current_user.is_approved %}
+                <p class="text-success">Your examiner account is approved. You can manage slots when active.</p>
+            {% else %}
+                <div class="alert alert-warning" role="alert">
+                    <strong>Pending Approval:</strong> Your examiner account is awaiting review and approval by the Admin.
+                </div>
+            {% endif %}
+        {% elif current_user.role == 'student' %}
+            <p class="text-info">You are logged in as a Student. You can browse, search, and book exam slots.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
