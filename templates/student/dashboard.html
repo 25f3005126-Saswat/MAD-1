@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title mb-3">Browse & Search Exams</h3>
+                <form method="GET" class="row g-3 mb-3">
+                    <div class="col-md-10">
+                        <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search by exam name or course code...">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Search</button>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>Exam</th>
+                                <th>Course</th>
+                                <th>Type</th>
+                                <th>Booking Window</th>
+                                <th>Available Slots</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exam in exams %}
+                            <tr>
+                                <td>{{ exam.name }}</td>
+                                <td>{{ exam.course.code }} - {{ exam.course.name }}</td>
+                                <td>{{ exam.exam_type }}</td>
+                                <td>{{ exam.booking_start.strftime('%Y-%m-%d %H:%M') }} to {{ exam.booking_end.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if exam.slots %}
+                                        <button class="btn btn-sm btn-info text-white" type="button" data-bs-toggle="collapse" data-bs-target="#slots-{{ exam.id }}">
+                                            View Slots ({{ exam.slots | length }})
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">No slots created</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if exam.slots %}
+                            <tr>
+                                <td colspan="5" class="p-0">
+                                    <div class="collapse p-3 bg-light" id="slots-{{ exam.id }}">
+                                        <h6>Slots for {{ exam.name }}</h6>
+                                        <table class="table table-sm table-bordered bg-white mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Examiner</th>
+                                                    <th>Capacity</th>
+                                                    <th>Status</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for slot in exam.slots %}
+                                                <tr>
+                                                    <td>{{ slot.date }}</td>
+                                                    <td>{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</td>
+                                                    <td>{{ slot.examiner.username }}</td>
+                                                    <td>{{ slot.booked_count }} / {{ slot.capacity }}</td>
+                                                    <td><span class="badge bg-{{ 'success' if slot.status == 'Available' else 'danger' }}">{{ slot.status }}</span></td>
+                                                    <td>
+                                                        {% if slot.status == 'Available' %}
+                                                            <form action="{{ url_for('book_slot', slot_id=slot.id) }}" method="POST">
+                                                                <button type="submit" class="btn btn-sm btn-success">Book</button>
+                                                            </form>
+                                                        {% else %}
+                                                            <button class="btn btn-sm btn-secondary" disabled>Full</button>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No exams found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title mb-3">My Bookings & History</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>Exam</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Examiner</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in bookings %}
+                            <tr>
+                                <td>{{ booking.exam.name }}</td>
+                                <td>{{ booking.slot.date }}</td>
+                                <td>{{ booking.slot.start_time.strftime('%H:%M') }} - {{ booking.slot.end_time.strftime('%H:%M') }}</td>
+                                <td>{{ booking.slot.examiner.username }}</td>
+                                <td><span class="badge bg-{{ 'success' if booking.status == 'Booked' else ('warning text-dark' if booking.status == 'Cancelled' else 'info') }}">{{ booking.status }}</span></td>
+                                <td>
+                                    {% if booking.status == 'Booked' %}
+                                        <form action="{{ url_for('cancel_booking', booking_id=booking.id) }}" method="POST">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Cancel this booking?')">Cancel</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">No booking history.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

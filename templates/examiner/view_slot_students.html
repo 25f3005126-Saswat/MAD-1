@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow">
+    <div class="card-body">
+        <h3 class="card-title mb-3">Students Booked in Slot</h3>
+        <p class="text-muted">Exam: <strong>{{ slot.exam.name }}</strong> | Date: <strong>{{ slot.date }}</strong> | Time: <strong>{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</strong></p>
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>Student Username</th>
+                        <th>Email</th>
+                        <th>Booking Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in slot.bookings %}
+                    <tr>
+                        <td>{{ booking.student.username }}</td>
+                        <td>{{ booking.student.email }}</td>
+                        <td><span class="badge bg-{{ 'success' if booking.status == 'Booked' else 'secondary' }}">{{ booking.status }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">No students booked in this slot yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <a href="{{ url_for('examiner_dashboard') }}" class="btn btn-outline-secondary mt-3">Back to Dashboard</a>
+    </div>
+</div>

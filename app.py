@@ -2,8 +2,9 @@ from flask import Flask, render_template, redirect, url_for, request, abort, fla
 from models import db, User, Course, Exam, Rubric, Slot, Booking, Evaluation, RubricMark
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, date, time
 from functools import wraps
+from sqlalchemy import or_
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'emp_secure_university_key_2026'
@@ -39,6 +40,22 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or current_user.role != 'admin':
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+def examiner_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'examiner' or not current_user.is_approved:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+def student_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'student':
             abort(403)
         return f(*args, **kwargs)
     return decorated_function
@@ -97,6 +114,14 @@ def register():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    if current_user.role == 'admin':
+        return redirect(url_for('manage_courses'))
+    elif current_user.role == 'examiner':
+        if not current_user.is_approved:
+            return render_template('dashboard.html')
+        return redirect(url_for('examiner_dashboard'))
+    elif current_user.role == 'student':
+        return redirect(url_for('student_dashboard'))
     return render_template('dashboard.html')
 
 @app.route('/logout')
@@ -201,7 +226,7 @@ def edit_exam(id):
         exam.booking_end = datetime.strptime(request.form.get('booking_end'), '%Y-%m-%dT%H:%M')
         exam.status = request.form.get('status')
         db.session.commit()
-        flash('Exam updated from edit page.', 'success')
+        flash('Exam updated successfully.', 'success')
         return redirect(url_for('manage_exams'))
     return render_template('admin/edit_exam.html', exam=exam, courses=courses)
 
@@ -261,6 +286,179 @@ def deactivate_examiner(id):
         db.session.commit()
         flash('Examiner deactivated successfully.', 'success')
     return redirect(url_for('manage_examiners'))
+
+@app.route('/examiner/dashboard')
+@login_required
+@examiner_required
+def examiner_dashboard():
+    exams = Exam.query.filter(Exam.status.in_(['Slot Creation', 'Booking Open', 'Closed'])).all()
+    slots = Slot.query.filter_by(examiner_id=current_user.id).all()
+    return render_template('examiner/dashboard.html', exams=exams, slots=slots)
+
+@app.route('/examiner/exam/<int:exam_id>/slot/new', methods=['GET', 'POST'])
+@login_required
+@examiner_required
+def create_slot(exam_id):
+    exam = db.get_or_404(Exam, exam_id)
+    now = datetime.now()
+    if not (exam.slot_start <= now <= exam.slot_end):
+        flash('Slot creation window is not active for this exam.', 'error')
+        return redirect(url_for('examiner_dashboard'))
+    if request.method == 'POST':
+        slot_date = datetime.strptime(request.form.get('date'), '%Y-%m-%d').date()
+        start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
+        end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
+        capacity = int(request.form.get('capacity'))
+        slot = Slot(
+            exam_id=exam.id,
+            examiner_id=current_user.id,
+            date=slot_date,
+            start_time=start_time,
+            end_time=end_time,
+            capacity=capacity,
+            booked_count=0,
+            status='Available'
+        )
+        db.session.add(slot)
+        db.session.commit()
+        flash('Slot created successfully.', 'success')
+        return redirect(url_for('examiner_dashboard'))
+    return render_template('examiner/create_slot.html', exam=exam)
+
+@app.route('/examiner/slot/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@examiner_required
+def edit_slot(id):
+    slot = db.get_or_404(Slot, id)
+    if slot.examiner_id != current_user.id:
+        abort(403)
+    now = datetime.now()
+    if now >= slot.exam.booking_start:
+        flash('Cannot edit slot after booking has started.', 'error')
+        return redirect(url_for('examiner_dashboard'))
+    if request.method == 'POST':
+        slot.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d').date()
+        slot.start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
+        slot.end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
+        slot.capacity = int(request.form.get('capacity'))
+        db.session.commit()
+        flash('Slot updated successfully.', 'success')
+        return redirect(url_for('examiner_dashboard'))
+    return render_template('examiner/edit_slot.html', slot=slot)
+
+@app.route('/examiner/slot/<int:id>/delete', methods=['POST'])
+@login_required
+@examiner_required
+def delete_slot(id):
+    slot = db.get_or_404(Slot, id)
+    if slot.examiner_id != current_user.id:
+        abort(403)
+    now = datetime.now()
+    if now >= slot.exam.booking_start:
+        flash('Cannot delete slot after booking has started.', 'error')
+        return redirect(url_for('examiner_dashboard'))
+    db.session.delete(slot)
+    db.session.commit()
+    flash('Slot deleted successfully.', 'success')
+    return redirect(url_for('examiner_dashboard'))
+
+@app.route('/examiner/slot/<int:id>/students')
+@login_required
+@examiner_required
+def view_slot_students(id):
+    slot = db.get_or_404(Slot, id)
+    if slot.examiner_id != current_user.id:
+        abort(403)
+    return render_template('examiner/view_slot_students.html', slot=slot)
+
+@app.route('/student/dashboard')
+@login_required
+@student_required
+def student_dashboard():
+    search_query = request.args.get('q', '')
+    exams_query = Exam.query.filter(Exam.status.in_(['Booking Open', 'Closed']))
+    if search_query:
+        exams_query = exams_query.join(Course).filter(
+            or_(
+                Exam.name.ilike(f'%{search_query}%'),
+                Course.code.ilike(f'%{search_query}%'),
+                Course.name.ilike(f'%{search_query}%')
+            )
+        )
+    exams = exams_query.all()
+    bookings = Booking.query.filter_by(student_id=current_user.id).all()
+    return render_template('student/dashboard.html', exams=exams, bookings=bookings, search_query=search_query)
+
+@app.route('/student/slot/<int:slot_id>/book', methods=['POST'])
+@login_required
+@student_required
+def book_slot(slot_id):
+    slot = db.get_or_404(Slot, slot_id)
+    exam = slot.exam
+    now = datetime.now()
+
+    if not (exam.booking_start <= now <= exam.booking_end):
+        flash('Booking period is not active for this exam.', 'error')
+        return redirect(url_for('student_dashboard'))
+
+    existing_active_booking = Booking.query.filter_by(
+        student_id=current_user.id,
+        exam_id=exam.id,
+        status='Booked'
+    ).first()
+
+    if existing_active_booking:
+        flash('You already have an active booking for this exam.', 'error')
+        return redirect(url_for('student_dashboard'))
+
+    if slot.status != 'Available' or slot.booked_count >= slot.capacity:
+        flash('Selected slot is full.', 'error')
+        return redirect(url_for('student_dashboard'))
+
+    booking = Booking(
+        slot_id=slot.id,
+        student_id=current_user.id,
+        exam_id=exam.id,
+        status='Booked'
+    )
+    db.session.add(booking)
+
+    slot.booked_count += 1
+    if slot.booked_count >= slot.capacity:
+        slot.status = 'Full'
+
+    db.session.commit()
+    flash('Slot booked successfully.', 'success')
+    return redirect(url_for('student_dashboard'))
+
+@app.route('/student/booking/<int:booking_id>/cancel', methods=['POST'])
+@login_required
+@student_required
+def cancel_booking(booking_id):
+    booking = db.get_or_404(Booking, booking_id)
+    if booking.student_id != current_user.id:
+        abort(403)
+
+    exam = booking.exam
+    now = datetime.now()
+
+    if now > exam.booking_end:
+        flash('Cannot cancel booking after the booking deadline.', 'error')
+        return redirect(url_for('student_dashboard'))
+
+    if booking.status != 'Booked':
+        flash('Booking is not active.', 'error')
+        return redirect(url_for('student_dashboard'))
+
+    booking.status = 'Cancelled'
+    slot = booking.slot
+    slot.booked_count -= 1
+    if slot.status == 'Full':
+        slot.status = 'Available'
+
+    db.session.commit()
+    flash('Booking cancelled successfully.', 'success')
+    return redirect(url_for('student_dashboard'))
 
 if __name__ == '__main__':
     seed_admin()
