@@ -317,6 +317,16 @@ def edit_exam(id):
         return redirect(url_for('manage_exams'))
     return render_template('admin/edit_exam.html', exam=exam, courses=courses)
 
+@app.route('/admin/exam/<int:id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_exam(id):
+    exam = db.get_or_404(Exam, id)
+    db.session.delete(exam)
+    db.session.commit()
+    flash('Exam deleted successfully.', 'success')
+    return redirect(url_for('manage_exams'))
+
 @app.route('/admin/exam/<int:id>/rubrics', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -345,10 +355,30 @@ def delete_rubric(id):
     flash('Rubric criterion deleted.', 'success')
     return redirect(url_for('manage_rubrics', id=exam_id))
 
-@app.route('/admin/examiners')
+@app.route('/admin/examiners', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def manage_examiners():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        existing = User.query.filter((User.username == username) | (User.email == email)).first()
+        if existing:
+            flash('Username or email already exists.', 'error')
+            return redirect(url_for('manage_examiners'))
+        hashed_pw = generate_password_hash(password)
+        examiner = User(
+            username=username,
+            email=email,
+            password_hash=hashed_pw,
+            role='examiner',
+            is_approved=True
+        )
+        db.session.add(examiner)
+        db.session.commit()
+        flash('Examiner added successfully.', 'success')
+        return redirect(url_for('manage_examiners'))
     examiners = User.query.filter_by(role='examiner').all()
     return render_template('admin/examiners.html', examiners=examiners)
 

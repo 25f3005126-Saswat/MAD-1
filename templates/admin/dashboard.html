@@ -1,51 +1,72 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Admin Dashboard</h2>
+    <div class="btn-group">
+        <a href="{{ url_for('manage_courses') }}" class="btn btn-outline-primary btn-sm">+ Manage Courses</a>
+        <a href="{{ url_for('manage_exams') }}" class="btn btn-outline-success btn-sm">+ Create Exam</a>
+        <a href="{{ url_for('manage_examiners') }}" class="btn btn-outline-info btn-sm">Review Examiners</a>
+    </div>
+</div>
+
 <div class="row mb-4">
     <div class="col-md-2 mb-3">
-        <div class="card text-white bg-primary shadow-sm">
-            <div class="card-body text-center">
-                <h6 class="card-title">Courses</h6>
-                <h3>{{ counts.courses }}</h3>
+        <a href="{{ url_for('manage_courses') }}" class="text-decoration-none">
+            <div class="card text-white bg-primary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Courses</h6>
+                    <h3>{{ counts.courses }}</h3>
+                    <small class="text-white-50">Manage &raquo;</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-2 mb-3">
-        <div class="card text-white bg-success shadow-sm">
-            <div class="card-body text-center">
-                <h6 class="card-title">Exams</h6>
-                <h3>{{ counts.exams }}</h3>
+        <a href="{{ url_for('manage_exams') }}" class="text-decoration-none">
+            <div class="card text-white bg-success shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Exams</h6>
+                    <h3>{{ counts.exams }}</h3>
+                    <small class="text-white-50">Manage &raquo;</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-2 mb-3">
-        <div class="card text-white bg-info shadow-sm">
-            <div class="card-body text-center">
-                <h6 class="card-title">Examiners</h6>
-                <h3>{{ counts.examiners }}</h3>
+        <a href="{{ url_for('manage_examiners') }}" class="text-decoration-none">
+            <div class="card text-white bg-info shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-title">Examiners</h6>
+                    <h3>{{ counts.examiners }}</h3>
+                    <small class="text-white-50">Review &raquo;</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-2 mb-3">
-        <div class="card text-white bg-warning shadow-sm">
+        <div class="card text-white bg-warning shadow-sm h-100">
             <div class="card-body text-center">
                 <h6 class="card-title">Students</h6>
                 <h3>{{ counts.students }}</h3>
+                <small class="text-white-50">Registered</small>
             </div>
         </div>
     </div>
     <div class="col-md-2 mb-3">
-        <div class="card text-white bg-secondary shadow-sm">
+        <div class="card text-white bg-secondary shadow-sm h-100">
             <div class="card-body text-center">
                 <h6 class="card-title">Slots</h6>
                 <h3>{{ counts.slots }}</h3>
+                <small class="text-white-50">Created</small>
             </div>
         </div>
     </div>
     <div class="col-md-2 mb-3">
-        <div class="card text-white bg-dark shadow-sm">
+        <div class="card text-white bg-dark shadow-sm h-100">
             <div class="card-body text-center">
                 <h6 class="card-title">Bookings</h6>
                 <h3>{{ counts.bookings }}</h3>
+                <small class="text-white-50">Total</small>
             </div>
         </div>
     </div>

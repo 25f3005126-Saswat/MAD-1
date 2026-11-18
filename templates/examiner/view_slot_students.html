@@ -11,6 +11,7 @@
                         <th>Student Username</th>
                         <th>Email</th>
                         <th>Booking Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -18,11 +19,20 @@
                     <tr>
                         <td>{{ booking.student.username }}</td>
                         <td>{{ booking.student.email }}</td>
-                        <td><span class="badge bg-{{ 'success' if booking.status == 'Booked' else 'secondary' }}">{{ booking.status }}</span></td>
+                        <td><span class="badge bg-{{ 'success' if booking.status == 'Booked' else ('info' if booking.status == 'Completed' else 'secondary') }}">{{ booking.status }}</span></td>
+                        <td>
+                            {% if booking.status == 'Booked' %}
+                                <a href="{{ url_for('evaluate_student', booking_id=booking.id) }}" class="btn btn-sm btn-primary">Evaluate</a>
+                            {% elif booking.status == 'Completed' %}
+                                <span class="text-success fw-bold">Evaluated ({{ booking.evaluation.total_marks }})</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="3" class="text-center text-muted">No students booked in this slot yet.</td>
+                        <td colspan="4" class="text-center text-muted">No students booked in this slot yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -31,3 +41,4 @@
         <a href="{{ url_for('examiner_dashboard') }}" class="btn btn-outline-secondary mt-3">Back to Dashboard</a>
     </div>
 </div>
+{% endblock %}

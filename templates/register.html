@@ -1,33 +1,72 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">Register</h3>
-                <form method="POST">
-                    <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-control" required>
+<div class="auth-wrapper">
+    <div class="w-100" style="max-width: 480px;">
+        <div class="card auth-card shadow-sm">
+            <div class="card-body p-4 p-sm-5">
+                <div class="text-center mb-4">
+                    <div class="auth-icon-circle mx-auto mb-3" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);">
+                        <i class="bi bi-person-plus-fill"></i>
                     </div>
+                    <h3 class="fw-bold mb-1">Create Account</h3>
+                    <p class="text-muted small">Register as a Student or Examiner in the portal</p>
+                </div>
+
+                <form method="POST" autocomplete="off">
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" required>
+                        <label class="form-label small fw-semibold text-secondary">Username</label>
+                        <div class="input-group auth-input-group">
+                            <span class="input-group-text border-end-0">
+                                <i class="bi bi-person"></i>
+                            </span>
+                            <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="Choose a username" required autofocus>
+                        </div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <label class="form-label small fw-semibold text-secondary">Email Address</label>
+                        <div class="input-group auth-input-group">
+                            <span class="input-group-text border-end-0">
+                                <i class="bi bi-envelope"></i>
+                            </span>
+                            <input type="email" name="email" class="form-control border-start-0 ps-0" placeholder="name@domain.edu" required>
+                        </div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Register As</label>
-                        <select name="role" class="form-select" required>
-                            <option value="student">Student</option>
-                            <option value="examiner">Examiner (Requires Admin Approval)</option>
-                        </select>
+                        <label class="form-label small fw-semibold text-secondary">Password</label>
+                        <div class="input-group auth-input-group">
+                            <span class="input-group-text border-end-0">
+                                <i class="bi bi-key"></i>
+                            </span>
+                            <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="Create a strong password" required>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-success w-100">Register</button>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Role</label>
+                        <div class="input-group auth-input-group">
+                            <span class="input-group-text border-end-0">
+                                <i class="bi bi-person-badge"></i>
+                            </span>
+                            <select name="role" class="form-select border-start-0 ps-0" required>
+                                <option value="student" selected>Student (Instant Access)</option>
+                                <option value="examiner">Examiner (Requires Admin Approval)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 fw-semibold auth-btn shadow-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        Register Account <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
                 </form>
-                <p class="text-center mt-3">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="text-muted small mb-0">
+                        Already have an account? 
+                        <a href="{{ url_for('login') }}" class="text-success text-decoration-none fw-semibold">Login here</a>
+                    </p>
+                </div>
             </div>
         </div>
     </div>

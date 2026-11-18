@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title mb-3">Change Assigned Examiner</h3>
+                <p class="text-muted">Exam: <strong>{{ slot.exam.name }}</strong> | Date: <strong>{{ slot.date }}</strong> | Current Examiner: <strong>{{ slot.examiner.username }}</strong></p>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Select New Examiner</label>
+                        <select name="new_examiner_id" class="form-select" required>
+                            {% for examiner in approved_examiners %}
+                                <option value="{{ examiner.id }}" {{ 'selected' if examiner.id == slot.examiner_id else '' }}>{{ examiner.username }} ({{ examiner.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-info text-white w-100">Update Examiner</button>
+                </form>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary w-100 mt-2">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,173 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow">
-            <div class="card-body">
-                <h3 class="card-title mb-3">Browse & Search Exams</h3>
-                <form method="GET" class="row g-3 mb-3">
-                    <div class="col-md-10">
-                        <input type="text" name="q" value="{{ search_query }}" class="form-control"
-                            placeholder="Search by exam name or course code...">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Search</button>
-                    </div>
-                </form>
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle">
-                        <thead>
-                            <tr>
-                                <th>Exam</th>
-                                <th>Course</th>
-                                <th>Type</th>
-                                <th>Booking Window</th>
-                                <th>Available Slots</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for exam in exams %}
-                            <tr>
-                                <td>{{ exam.name }}</td>
-                                <td>{{ exam.course.code }} - {{ exam.course.name }}</td>
-                                <td>{{ exam.exam_type }}</td>
-                                <td>{{ exam.booking_start.strftime('%Y-%m-%d %H:%M') }} to {{
-                                    exam.booking_end.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>
-                                    {% if exam.slots %}
-                                    <button class="btn btn-sm btn-info text-white" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#slots-{{ exam.id }}">
-                                        View Slots ({{ exam.slots | length }})
-                                    </button>
-                                    {% else %}
-                                    <span class="text-muted">No slots created</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% if exam.slots %}
-                            <tr>
-                                <td colspan="5" class="p-0">
-                                    <div class="collapse p-3 bg-light" id="slots-{{ exam.id }}">
-                                        <h6>Slots for {{ exam.name }}</h6>
-                                        <table class="table table-sm table-bordered bg-white mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Time</th>
-                                                    <th>Examiner</th>
-                                                    <th>Capacity</th>
-                                                    <th>Status</th>
-                                                    <th>Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for slot in exam.slots %}
-                                                <tr>
-                                                    <td>{{ slot.date }}</td>
-                                                    <td>{{ slot.start_time.strftime('%H:%M') }} - {{
-                                                        slot.end_time.strftime('%H:%M') }}</td>
-                                                    <td>{{ slot.examiner.username }}</td>
-                                                    <td>{{ slot.booked_count }} / {{ slot.capacity }}</td>
-                                                    <td><span
-                                                            class="badge bg-{{ 'success' if slot.status == 'Available' else 'danger' }}">{{
-                                                            slot.status }}</span></td>
-                                                    <td>
-                                                        {% if slot.status == 'Available' %}
-                                                        <form action="{{ url_for('book_slot', slot_id=slot.id) }}"
-                                                            method="POST">
-                                                            <button type="submit"
-                                                                class="btn btn-sm btn-success">Book</button>
-                                                        </form>
-                                                        {% else %}
-                                                        <button class="btn btn-sm btn-secondary" disabled>Full</button>
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endif %}
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">No exams found.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+<div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <div class="container-fluid py-3">
+        <h1 class="display-5 fw-bold">Welcome, {{ current_user.username }}!</h1>
+        <p class="col-md-8 fs-4 text-muted">Role: <strong>{{ current_user.role | upper }}</strong></p>
+        <hr>
+        {% if current_user.role == 'admin' %}
+            <p class="text-success">You are logged in as Admin. You have full system management privileges.</p>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Go to Admin Dashboard</a>
+        {% elif current_user.role == 'examiner' %}
+            {% if current_user.is_approved %}
+                <p class="text-success">Your examiner account is approved. You can manage slots when active.</p>
+                <a href="{{ url_for('examiner_dashboard') }}" class="btn btn-primary">Go to Examiner Dashboard</a>
+            {% else %}
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading">Pending Admin Approval</h5>
+                    <p class="mb-0">Your examiner account has been registered, but an Administrator must approve it before you can create slots or evaluate exams.</p>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow">
-            <div class="card-body">
-                <h3 class="card-title mb-3">My Bookings, Results & History</h3>
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle">
-                        <thead>
-                            <tr>
-                                <th>Exam</th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Examiner</th>
-                                <th>Status</th>
-                                <th>Result / Marks</th>
-                                <th>Remarks</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for booking in bookings %}
-                            <tr>
-                                <td>{{ booking.exam.name }}</td>
-                                <td>{{ booking.slot.date }}</td>
-                                <td>{{ booking.slot.start_time.strftime('%H:%M') }} - {{
-                                    booking.slot.end_time.strftime('%H:%M') }}</td>
-                                <td>{{ booking.slot.examiner.username }}</td>
-                                <td><span
-                                        class="badge bg-{{ 'success' if booking.status == 'Booked' else ('info' if booking.status == 'Completed' else 'warning text-dark') }}">{{
-                                        booking.status }}</span></td>
-                                <td>
-                                    {% if booking.status == 'Completed' and booking.evaluation %}
-                                    <strong>{{ booking.evaluation.total_marks }} / {{ booking.exam.max_marks }}</strong>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if booking.status == 'Completed' and booking.evaluation %}
-                                    {{ booking.evaluation.remarks or 'No remarks' }}
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if booking.status == 'Booked' %}
-                                    <form action="{{ url_for('cancel_booking', booking_id=booking.id) }}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-danger"
-                                            onclick="return confirm('Cancel this booking?')">Cancel</button>
-                                    </form>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="8" class="text-center text-muted">No booking history.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+            {% endif %}
+        {% elif current_user.role == 'student' %}
+            <p class="text-info">You are logged in as a Student. You can browse, search, and book exam slots.</p>
+            <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary">Go to Student Dashboard</a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

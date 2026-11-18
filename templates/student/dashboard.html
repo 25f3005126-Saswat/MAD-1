@@ -99,7 +99,7 @@
     <div class="col-12">
         <div class="card shadow">
             <div class="card-body">
-                <h3 class="card-title mb-3">My Bookings & History</h3>
+                <h3 class="card-title mb-3">My Bookings, Results & History</h3>
                 <div class="table-responsive">
                     <table class="table table-bordered align-middle">
                         <thead>
@@ -109,6 +109,8 @@
                                 <th>Time</th>
                                 <th>Examiner</th>
                                 <th>Status</th>
+                                <th>Result / Marks</th>
+                                <th>Remarks</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -119,7 +121,21 @@
                                 <td>{{ booking.slot.date }}</td>
                                 <td>{{ booking.slot.start_time.strftime('%H:%M') }} - {{ booking.slot.end_time.strftime('%H:%M') }}</td>
                                 <td>{{ booking.slot.examiner.username }}</td>
-                                <td><span class="badge bg-{{ 'success' if booking.status == 'Booked' else ('warning text-dark' if booking.status == 'Cancelled' else 'info') }}">{{ booking.status }}</span></td>
+                                <td><span class="badge bg-{{ 'success' if booking.status == 'Booked' else ('info' if booking.status == 'Completed' else 'warning text-dark') }}">{{ booking.status }}</span></td>
+                                <td>
+                                    {% if booking.status == 'Completed' and booking.evaluation %}
+                                        <strong>{{ booking.evaluation.total_marks }} / {{ booking.exam.max_marks }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.status == 'Completed' and booking.evaluation %}
+                                        {{ booking.evaluation.remarks or 'No remarks' }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if booking.status == 'Booked' %}
                                         <form action="{{ url_for('cancel_booking', booking_id=booking.id) }}" method="POST">
@@ -132,7 +148,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="text-center text-muted">No booking history.</td>
+                                <td colspan="8" class="text-center text-muted">No booking history.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
